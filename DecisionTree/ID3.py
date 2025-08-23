@@ -1,7 +1,9 @@
+import json
 from entropy import gain
 from pandas import DataFrame
 import matplotlib.pyplot as plt
 import networkx as nx
+import random
 
 def findBestFeature(df, target_label):
     labels = [col for col in df.columns if col != target_label]
@@ -37,16 +39,27 @@ def plot_tree(tree, parent=None, graph=None, edge_label=''):
         plt.show()
     return graph
 
-def id3(data: DataFrame, cate: str):
+def getAllGain(data: DataFrame, cate: str):
     labels=[]
     for idx in data.keys():
         labels.append(idx)
     cates = data.get(cate)
-    id3_dict = {}
+    gain_dict = {}
     for label in labels:
         gain_val = gain(data, label, cate, cates)
-        id3_dict.update({label: gain_val})
-    return id3_dict
+        gain_dict.update({label: gain_val})
+    return gain_dict
+
+def classify(tree: dict, labels: dict, default=None):
+    node = next(iter(tree.keys()))
+    branch = labels[node]
+    if branch not in tree[node]:
+        return default
+    sub_node = tree[node][branch]
+    if isinstance(sub_node, dict):
+        return classify(sub_node, labels)
+    else:
+        return sub_node
 
 def createDecisionTree(data: DataFrame, target_label):
     if len(set(data[target_label])) == 1:
@@ -70,7 +83,11 @@ if __name__ == "__main__":
 }
     df = DataFrame(data)
     print(df)
-    print(id3(df, "Play"))
+    print(getAllGain(df, "Play"))
     print(findBestFeature(df, "Play"))
     tree = createDecisionTree(df, "Play")
+    print(json.dumps(tree, indent=4, ensure_ascii=False))
     plot_tree(tree)
+    labels = {"Outlook": "Sunny", "Temperature": "Cool"}
+    isPlay = classify(tree, labels)
+    print(isPlay)
